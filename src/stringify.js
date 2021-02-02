@@ -164,7 +164,7 @@ const array_stringify = (value, gap) => {
       deeper_gap
     )
 
-    inside += before || (LF + deeper_gap)
+    inside += before || EMPTY; //(LF + deeper_gap)
 
     // JSON.stringify([undefined])  => [null]
     inside += stringify(i, value, deeper_gap) || STR_NULL
@@ -181,7 +181,7 @@ const array_stringify = (value, gap) => {
   )
 
   return BRACKET_OPEN
-   + join_content(inside, value, gap)
+   + inside
    + BRACKET_CLOSE
 }
 
