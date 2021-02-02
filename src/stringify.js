@@ -74,7 +74,7 @@ const comment_stringify = (value, line) => line
 
 // display_block `boolean` whether the
 //   WHOLE block of comments is always a block group
-const process_comments = (host, symbol_tag, deeper_gap, display_block) => {
+const process_comments = (host, symbol_tag, deeper_gap, display_block, currentLineLength = 0) => {
   const comments = host[Symbol.for(symbol_tag)]
   if (!comments || !comments.length) {
     return EMPTY
@@ -85,7 +85,8 @@ const process_comments = (host, symbol_tag, deeper_gap, display_block) => {
   const str = comments.reduce((prev, {
     inline,
     type,
-    value
+    value,
+    loc
   }) => {
     const delimiter = inline
       ? SPACE
@@ -93,7 +94,11 @@ const process_comments = (host, symbol_tag, deeper_gap, display_block) => {
 
     is_line_comment = type === 'LineComment'
 
-    return prev + delimiter + comment_stringify(value, is_line_comment)
+    const extraSpace = (loc.start.column > deeper_gap.length + currentLineLength)
+      ? loc.start.column - (deeper_gap.length + currentLineLength) - 1
+      : 0;
+
+    return prev + delimiter + SPACE.repeat(extraSpace) + comment_stringify(value, is_line_comment)
   }, EMPTY)
 
 
@@ -228,15 +233,22 @@ const object_stringify = (value, gap) => {
 
     inside += before || (LF + deeper_gap)
 
-    inside += quote(key)
+    const line = quote(key)
     + process_comments(value, AFTER_PROP(key), deeper_gap)
     + COLON
     + process_comments(value, AFTER_COLON(key), deeper_gap)
     + SPACE
     + sv
-    + process_comments(value, AFTER_VALUE(key), deeper_gap)
 
-    after_comma = process_comments(value, AFTER(key), deeper_gap)
+    const lines = line.split("\n");
+    const length = lines[lines.length - 1].startsWith(deeper_gap)
+      ? lines[lines.length - 1].length - deeper_gap.length
+      : lines[lines.length - 1].length;
+    
+    inside += line;
+    inside += process_comments(value, AFTER_VALUE(key), deeper_gap, false, length);
+
+    after_comma = process_comments(value, AFTER(key), deeper_gap, false, length);
   }
 
   keys.forEach(iteratee)
